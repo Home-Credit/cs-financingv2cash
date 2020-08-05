@@ -4,8 +4,6 @@ HOST: https://api.homecredit.cz
 # Home Credit - Partner API - CASH
 API documentation for Home Credit API for partners.
 
-In case of any question, please contact our integration department (xxx).
-
 ## Getting started
 This online document describes Home Credit (HC) API for partners - the means for partners through which they can offer their customers the benefits of one of Home Credit's payment methods or products.
 
@@ -15,8 +13,7 @@ Described services aim to allow customers the smooth running through the process
 | ---                                                         | ---                                                                                                                                                          |
 | [Security](#reference/security)                             | Security rules and principles                                                                                                                                |
 | [Application resources](#reference/application-resources)   | Resources that allows the processing of *application* during its whole life cycle                                                                                |
-| [Scoring resources](#reference/application-resources)   | Resources that allows customer preliminary scoring   |
-| [Merchantsite resources](#reference/merchantsite-resources) | Services that should be developed and exposed by partner e-shops to allow HC asynchronously inform them about important changes regarding particular *application* |
+| [Scoring resources](#reference/scoring-resources)   | Resources that allows customer preliminary scoring   |
 
 ### Basic implementation
 The basic and minimum way how to implement HCO API is to at least implement:
@@ -26,8 +23,8 @@ The basic and minimum way how to implement HCO API is to at least implement:
     - Partner calls this resource to start the loan approval process by creating an `application`. `Application` itself and its ID are essential for successful process completion.
 1. Redirect handlers.
     - Special URLs for customers that shows payment success or rejection (more info [here](#introduction/getting-started/parameters-added-to-partners-return-urls)).
-1. [Application notification](#reference/merchantsite-resources/application-notification)
-    - This endpoint has to be exposed on partner's side to allow HC back-end to asynchronously notify about the important changes regarding particular applications.
+1. [Application process result](#reference/application-resources/application-notification)
+    - Partner uses this group of resources to actively track results of partner's applications.
 
 <!-- diagram minimální implementace -->
 
@@ -91,7 +88,7 @@ When partner reaches API calls limit (partner calls the API more times than is p
 - `X-Rate-Limit-Reset` - The number of seconds left in the current period
 
 ## Versioning
-API version is used in URL (e.g. `https://api.homecredit.cz/financing/v2/scorings/precheck`). Minor changes (see below) that don't break backwards compatibility do NOT increase API version, e.g. they MAY happen without prior notice and partner's application should be ready to handle them.
+We use API version in URL (e.g. `https://api.homecredit.cz/financing/v2/scorings/precheck`). Minor changes (see below) that don't break backwards compatibility do NOT increase API version, e.g. they MAY happen without prior notice and partner's application should be ready to handle them.
 
 Minor changes include:
 - adding new resource
@@ -212,7 +209,7 @@ curl -H "Authorization: Bearer secret_token" https://api.homecredit.cz/financing
 }
 ```
 
-- if partner provides invalid access token, partner will receive `401 Unauthorized` error and following response body:
+- if partner provides invalid access token, he will receive `401 Unauthorized` error and following response body:
 
 ```
 {
@@ -317,9 +314,8 @@ Create a new *application*
     + Attributes (Errors)
 
 
-## Application's process result [/financing/v2/applications/results{?applicationId,applicationCreatedDateFrom,applicationCreatedDateTo,onlyFinishedApplications}] Resource `/financing/v2/applications/results` is used to check the final state of partner's application(s). There are two ways how to use this resource:
-- single application request - if partner just wants to know if a particular application is finished he uses this resource with search attribute `{applicationId}`. Note: other search attributes are then ignored.
--  many applications request - this happens if attribute `{applicationId}` is not filled. Other search attributes MAY be fill in. All applications matching the search criteria are returned in the response.
+## Process result of singular application [/financing/v2/applications/{applicationId}/results]
+Partner may use resource `/financing/v2/applications/{applicationId}/results` to check the final state of singular partner's application.
 
 If the request was successfully processed, partner receives HTTP status code 200.
 
@@ -329,14 +325,41 @@ In other cases, partner receives one of the following errors:
   | 400         | INVALID_REQUEST       | Request was not well formatted (malformed request syntax, size too large, etc.)  |
   | 500         | INTERNAL_SERVER_ERROR | Unexpected condition was encountered and no more specific message is suitable    |
 
+  + Parameters
+      + applicationId (string, optional, `123e4567-e89b-12d3-a456-426655440000`) - Primary identifier of the application.
 
-### Get results of application process [GET]
+### Get result of application process [GET]
+
++ Response 200(application/json;charset=UTF-8)
+
+    + Attributes (ApplicationResult)
+
+
++ Response 400(application/json;charset=UTF-8)
+
+    + Attributes (Errors)
+
+
+## Process result of group of applications [/financing/v2/applications/results{?applicationCreatedDateFrom,applicationCreatedDateTo,onlyFinishedApplications}]
+Partner may use resource `/financing/v2/applications/results` to check the final state of many partner's applications. Partner MAY fill in other search attributes. All applications matching the search criteria are returned in the response. There are 3 search attributes:
++ `applicationCreatedDateFrom` - Search attribute for date of creation of application. Only applications created on or after that date will be included in the result. If not provided, 7 days before the actual date is used.
++ `applicationCreatedDateTo` - Search attribute for date of creation of application. Only applications created on or before that date will be included in the result. If not provided, the actual date is used.
++ `onlyFinishedApplications` - Search attribute for the inclusion of finished applications only. If not provided, `false` is used.
+
+If the request was successfully processed, partner receives HTTP status code 200.
+
+In other cases, partner receives one of the following errors:
+  | Status code | Code                  | Explanation                                                                      |
+  | ---         | ---                   | ---                                                                              |
+  | 400         | INVALID_REQUEST       | Request was not well formatted (malformed request syntax, size too large, etc.)  |
+  | 500         | INTERNAL_SERVER_ERROR | Unexpected condition was encountered and no more specific message is suitable    |
 
 + Parameters
-    + applicationId (string, optional, `123e4567-e89b-12d3-a456-426655440000`) - Primary identifier of the application. Note: if partner provides `applicationId`, other search attributes will be ignored
     + applicationCreatedDateFrom (string, optional, `2020-01-10`) - Search attribute for date of creation of application. Only applications created on or after that date will be included in the result. If not provided, 7 days before the actual date is used.
     + applicationCreatedDateTo (string, optional, `2020-01-12`) - Search attribute for date of creation of application. Only applications created on or before that date will be included in the result. If not provided, the actual date is used.
     + onlyFinishedApplications (boolean, optional, `true`) - Search attribute for the inclusion of finished applications only. If not provided, `false` is used.
+
+### Get process results of group of applications [GET]
 
 + Response 200(application/json;charset=UTF-8)
 
@@ -380,69 +403,6 @@ Possible error codes explanation:
     + Attributes (Errors)
 
 
-
-# Group Merchantsite resources
-Services that should be developed and exposed by partner e-shops to allow HC asynchronously inform these partner e-shops about important changes regarding particular *applications* and *orders*
-
-> **ATTENTION:** This set of APIs is NOT exposed from HC. Instead, it should be developed by the partner and accept calls specified below.
-
-
-## Application notification [/partner/notification/endpoint]
-We use this resource to inform partner about important changes within particular *application*. Namely in following situations:
-tbd
-
-| Trigger                                                             | Corresponding `Application.status` | Corresponding `Application.financedSubject.order.status` |
-| ---                                                                 | ---                                | ---                                                      |
-| Application was approved (approval process is proceeding correctly) | APPROVED                           | IN_PROCESS                                               |
-| Application was rejected                                            | REJECTED                           | CANCELLED                                                |
-| Application was cancelled (before delivery)                         | CANCELLED                          | CANCELLED                        |
-
-We fill the request with at least following information:
-- Application unique ID
-- Application status
-- Time of a triggering `Application.status` change
-- Notification sequence number
-- Notification dispatch time
-- Hashed message (checksum)
-
-<!--
-> USEFUL NOTE: partner may use `GET /financing/v2/applications/results` resource to directly find out the information about application's results.
--->
-
-### Application notification [POST]
-Notify partners about changes in the application.
-
-+ Request (application/json;charset=UTF-8)
-    + Attributes (NotificationRequest)
-        + `notificationContent` (NotificationContent)
-            + `applicationStatus`: `CONFIRMED` (enum, required) - Status of the application
-              + `CREATED`
-              + `PRESCORED`
-              + `APPROVED`
-              + `VERIFICATION`
-              + `ALTERNATIVE`
-              + `CONFIRMED`
-              + `REJECTED`
-              + `CANCELLED`
-            + `orderStatus`: `TO_SHIP` (enum, optional) - Status of the Order
-              + `IN_PROCESS`
-              + `TO_SHIP`
-              + `SHIPPED`
-              + `CHECKING_DELIVERY`
-              + `DELIVERED`
-              + `PAID`
-              + `CANCELLED`
-              + `TERMINATED`
-            + downPayment (Amount)
-              + `value`: 150000 (number, required) - Amount in minor units (150000 represents 1 500) [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217)
-              + `currency`: `CZK` (string, required) - Amount currency [ISO 4217](https://en.wikipedia.org/wiki/ISO_4217). Only local currency is allowed (CZK in Czech Republic and EUR in Slovakia).
-
-+ Response 204
-        Notification accepted
-
-+ Response 400 (application/json;charset=UTF-8)
-
-        Can not process changes
 
 
 # Data Structures
@@ -539,7 +499,7 @@ SHOULD be valid in combination with attributes `cash.amount` and `preferredInsta
 + redirect (RedirectURL, optional) - Data for workflow step `REDIRECT`
 
 ## RedirectURL(object)
-+ gatewayRedirectUrl: `https://nasplatky.homecredit.cz` (string,  required) - Gateway redirect URL. Partner SHOULD redirect the client to this address for the continuation of the application approval process.
++ gatewayRedirectUrl: `https://pujcka.homecredit.cz` (string,  required) - Gateway redirect URL. Partner SHOULD redirect the client to this address for the continuation of the application approval process.
 
 ## PrecheckRequest(object)
 Precheck data.
