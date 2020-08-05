@@ -22,8 +22,8 @@ The basic and minimum way how to implement HCO API is to at least implement:
 1. [Create application](#reference/application-resources/create-application)
     - Partner calls this resource to start the loan approval process by creating an `application`. `Application` itself and its ID are essential for successful process completion.
 1. Redirect handlers.
-    - Special URLs for customers that shows payment success or rejection (more info [here](#introduction/getting-started/parameters-added-to-partners-return-urls)).
-1. [Application process result](#reference/application-resources/application-notification)
+    - Special URLs for customers that shows payment success or rejection (more info [here](/#introduction/getting-started/parameters-added-to-return-urls).
+1. [Application process result](#reference/application-resources/process-result-of-singular-application)
     - Partner uses this group of resources to actively track results of partner's applications.
 
 <!-- diagram minimální implementace -->
@@ -625,8 +625,8 @@ Detail of result of the application approval process
 Partner login credentials
 
 ### Properties
-+ `username`: `eShop` (string, required) - Partner username
-+ `password`: `eShopSecretPassword` (string, required) - Partner secret password
++ `username`: `partner` (string, required) - Partner username
++ `password`: `partnerSecretPassword` (string, required) - Partner secret password
 
 ## PartnerLoginResult (object)
 Authenticated partner access token
