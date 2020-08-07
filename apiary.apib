@@ -4,6 +4,8 @@ HOST: https://api.homecredit.cz
 # Home Credit - Partner API - CASH
 API documentation for Home Credit API for partners.
 
+Version of documentation: 1.01 (initial)
+
 ## Getting started
 This online document describes Home Credit (HC) API for partners - the means for partners through which they can offer their customers the benefits of one of Home Credit's payment methods or products.
 
@@ -22,9 +24,7 @@ The basic and minimum way how to implement HCO API is to at least implement:
 1. [Create application](#reference/application-resources/create-application)
     - Partner calls this resource to start the loan approval process by creating an `application`. `Application` itself and its ID are essential for successful process completion.
 1. Redirect handlers.
-    - Special URLs for customers that shows payment success or rejection (more info [here](/#introduction/getting-started/parameters-added-to-return-urls).
-1. [Application process result](#reference/application-resources/process-result-of-singular-application)
-    - Partner uses this group of resources to actively track results of partner's applications.
+    - Special URLs for customers that shows payment success or rejection (more info [here](/#introduction/getting-started/parameters-added-to-return-urls)).
 
 <!-- diagram minimální implementace -->
 
@@ -313,62 +313,6 @@ Create a new *application*
 
     + Attributes (Errors)
 
-
-## Process result of singular application [/financing/v2/applications/{applicationId}/results]
-Partner may use resource `/financing/v2/applications/{applicationId}/results` to check the final state of singular partner's application.
-
-If the request was successfully processed, partner receives HTTP status code 200.
-
-In other cases, partner receives one of the following errors:
-  | Status code | Code                  | Explanation                                                                      |
-  | ---         | ---                   | ---                                                                              |
-  | 400         | INVALID_REQUEST       | Request was not well formatted (malformed request syntax, size too large, etc.)  |
-  | 500         | INTERNAL_SERVER_ERROR | Unexpected condition was encountered and no more specific message is suitable    |
-
-  + Parameters
-      + applicationId (string, optional, `123e4567-e89b-12d3-a456-426655440000`) - Primary identifier of the application.
-
-### Get result of application process [GET]
-
-+ Response 200(application/json;charset=UTF-8)
-
-    + Attributes (ApplicationResult)
-
-
-+ Response 400(application/json;charset=UTF-8)
-
-    + Attributes (Errors)
-
-
-## Process result of group of applications [/financing/v2/applications/results{?applicationCreatedDateFrom,applicationCreatedDateTo,onlyFinishedApplications}]
-Partner may use resource `/financing/v2/applications/results` to check the final state of many partner's applications. Partner MAY fill in other search attributes. All applications matching the search criteria are returned in the response. There are 3 search attributes:
-+ `applicationCreatedDateFrom` - Search attribute for date of creation of application. Only applications created on or after that date will be included in the result. If not provided, 7 days before the actual date is used.
-+ `applicationCreatedDateTo` - Search attribute for date of creation of application. Only applications created on or before that date will be included in the result. If not provided, the actual date is used.
-+ `onlyFinishedApplications` - Search attribute for the inclusion of finished applications only. If not provided, `false` is used.
-
-If the request was successfully processed, partner receives HTTP status code 200.
-
-In other cases, partner receives one of the following errors:
-  | Status code | Code                  | Explanation                                                                      |
-  | ---         | ---                   | ---                                                                              |
-  | 400         | INVALID_REQUEST       | Request was not well formatted (malformed request syntax, size too large, etc.)  |
-  | 500         | INTERNAL_SERVER_ERROR | Unexpected condition was encountered and no more specific message is suitable    |
-
-+ Parameters
-    + applicationCreatedDateFrom (string, optional, `2020-01-10`) - Search attribute for date of creation of application. Only applications created on or after that date will be included in the result. If not provided, 7 days before the actual date is used.
-    + applicationCreatedDateTo (string, optional, `2020-01-12`) - Search attribute for date of creation of application. Only applications created on or before that date will be included in the result. If not provided, the actual date is used.
-    + onlyFinishedApplications (boolean, optional, `true`) - Search attribute for the inclusion of finished applications only. If not provided, `false` is used.
-
-### Get process results of group of applications [GET]
-
-+ Response 200(application/json;charset=UTF-8)
-
-    + Attributes (GetApplicationsResults)
-
-
-+ Response 400(application/json;charset=UTF-8)
-
-    + Attributes (Errors)
 
 
 # Group Scoring resources
