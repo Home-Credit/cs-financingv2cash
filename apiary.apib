@@ -4,7 +4,7 @@ HOST: https://api.homecredit.cz
 # Home Credit - Partner API - CASH
 API documentation for Home Credit API for partners.
 
-Version on documentation: 2.2.1 (08/2020)
+Version on documentation: 2.4.1 (06/2021)
 
 ## Getting started
 This online document describes Home Credit (HC) API for partners - the means for partners through which they can offer their customers the benefits of one of Home Credit's payment methods or products.
@@ -258,10 +258,15 @@ The elementary flow starts when the customer either wants to use one of the Home
 
 
 Use `/financing/v2/applications` resource with the properly filled request that contains at least the following data
+- Customer's personal data (MAY be ommited for `ONLINE` process - see below)
 - The financed subject of the application (purchase of goods or cash)
 - Context information necessary for the continuation and completion of the process
-  - Channel type (always `ONLINE`)
+  - Channel type (`ONLINE` or `PHONE`)
   - Channel data
+
+There are two options for completing client's application: online or over the phone. During online completion process (channel type `ONLINE`) the client fills out the entire application himself, selects the product he is interested in and then signs the contract online. During process over the phone (channel type `PHONE`), the client waits for a Home Credit operator to call him and guide him through the same process without the need to be online.
+
+> **IMPORTANT NOTE:** `PHONE` process of completion is different from `ONLINE` in terms of the client's personal data. For `PHONE` process partner MUST provide following personal data and they MUST be valid: `firstName`, `lastName`, `email`, `phone`, `identificationNumber`. Validation rules for `ONLINE` process are not so strict therefore it is possible to create application even without any personal data at all. You may find specifications of validations in particular attributes' description.
 
 If the request was successfully processed, partner receives HTTP status code 201 and `Application` object with at least the following information in the response:
 - Application unique ID
@@ -404,7 +409,7 @@ Possible error codes explanation:
 
 + Response 200 (application/json;charset=UTF-8)
 calculateOffers
-    + Attributes (CalculateOffersResponse)
+    + Attributes (array[CalculateOffersResponse])
 
 
 + Response 400(application/json;charset=UTF-8)
@@ -468,6 +473,9 @@ Request is filled with at least following information:
 - Notification dispatch time
 - Hashed message (checksum) - used to verify data integrity and data authenticity
 
+<!--
+> USEFUL NOTE: Partner may use `GET /financing/v2/applications/results` resource to directly find out the information about application's results.
+-->
 
 ### Application notification [POST]
 Notify partner about change in the application process.
@@ -492,13 +500,13 @@ Notify partner about change in the application process.
 + financedSubject (FinancedSubjectBase, required) - Subject of financing (for example IPhone purchase, loan for 20 000 CZK ...)
 
 ## ApplicationCustomer(object)
-+ `firstName`: `John` (string, optional) -  Customer first (given) name. String values longer than 100 characters will be shortened to 100 characters.
-+ `lastName`: `Newborn` (string, optional) - Customer last (family) name. String values longer than 100 characters will be shortened to 100 characters.
-+ `fullName`: `Ing. John Newborn, Csc.` (string, optional) - Customer full name, including academical degrees and salutation. Attribute `fullName` is parsed (and eventually shortened) into `firstName` and `lastName`; `fullName` is never returned in response. In case all three atributes are provided, `fullName` is discarded.
++ `firstName`: `John` (string, optional) -  Customer first (given) name. Name SHOULD follow regular expression `^[A-ZÁ-Ž]'?[- \u00A0a-zA-Zá-žÁ-Ž]*[a-zA-Zá-žÁ-Ž]$`, SHOULD be 2 to 30 characters long and characters SHOULD come from the `ISO 8859-2` character set.
++ `lastName`: `Newborn` (string, optional) - Customer last (family) name. Name SHOULD follow regular expression `^[A-ZÁ-Ž]'?[- \u00A0a-zA-Zá-žÁ-Ž]*[a-zA-Zá-žÁ-Ž]$`,SHOULD be 2 to 30 characters long and characters SHOULD come from the `ISO 8859-2` character set.
++ `fullName`: `Ing. John Newborn, Csc.` (string, optional) - Customer full name, including academical degrees and salutation. Attribute `fullName` is parsed (and eventually shortened) into `firstName` and `lastName`; `fullName` is never returned in response. In case all three atributes are provided, `fullName` is discarded. Full name SHOULD be no longer than 100 characters and characters SHOULD come from the `ISO 8859-2` character set
 + `email`: `john.newborn@country.com` (string, optional) - E-mail address of customer. MUST be valid email according to [RFC 2822](https://tools.ietf.org/html/rfc2822).
-+ `phone`: `+420777123456` (string, optional) - Phone number with country code (including leading `+`)
++ `phone`: `+420777123456` (string, optional) - Phone number with country code (including leading `+`). Phone number SHOULD be 13 characters long (with country code). The phone number itself without country code SHOULD begin with digit `6` or `7` (for CZ) or with `9x` where `x` is different from `6` (for SK)
 + `addresses` (array[Address], fixed-type, optional) - Addresses.
-+ identificationNumber: `890619/5723` (string, optional) - Client's identification number (actually birth number). MAY be filled if known. SHOULD consist only of digits and '/' character, other characters will be discarded. After this transformation string values longer than 11 characters will be shortened to 11 characters.
++ identificationNumber: `890619/5723` (string, optional) - Client's identification number (actually birth number). SHOULD be valid according to the legislation currently in effect. Client MUST be at least 18 years old.
 + `tin`: `12333321` (string, optional) - Tax identification number (ICO). String values longer than 10 characters will be shortened to 10 characters.
 + ipAddress: `172.10.10.1` (string, optional) - IPv4 or IPv6 address of a customer.
 + fingerprintComponents (KeyValue, optional) - Fingerprints components.
@@ -546,8 +554,10 @@ SHOULD be valid in combination with attributes `cash.amount` and `preferredInsta
 
 ## OriginationChannel(object)
 + type (enum, required) - Type of origination channel
-    + `ONLINE` - Client handles the whole application himself online without any partner's employees interference (for example client's purchase in eshop)
-+ online (MerchantURLs,  required) - Collection of partner's URLs used for redirection of a client back to a partner website or as a notification endpoint. REQUIRED for `ONLINE` channel type
+    + `ONLINE` - Client handles the whole application himself online (for example client's purchase in eshop)
+    + `PHONE` - Application process is settled by the client and the operator over the phone
++ online (MerchantURLs,  optional) - Collection of partner's URLs used for redirection of a client back to a partner website or as a notification endpoint. REQUIRED for `ONLINE` channel type
++ phone (ChannelPhoneSettings,  optional) - Additional data REQUIRED for `PHONE` channel type
 
 
 ## MerchantURLs(object)
@@ -555,6 +565,14 @@ SHOULD be valid in combination with attributes `cash.amount` and `preferredInsta
 + rejectedRedirect: `https://www.partnereshop.cz/kosik` (string, optional) - URL of the partner used for redirection of the client back to partner website after application rejection. MUST be valid URL according to [RFC 3986](https://tools.ietf.org/html/rfc3986). URL SHOULD contain scheme (for example `https://`) otherwise some browsers will not redirect client correcly. MUST NOT be longer than 1000 characters.
 + notificationEndpoint: `https://www.partnereshop.cz/order/AA234` (string, optional) - URL of the partner used as a notification endpoint for notifying partner about important updates in the application process (approval, rejection, cancellation, etc.). MUST be valid URL according to [RFC 3986](https://tools.ietf.org/html/rfc3986). URL SHOULD contain scheme (for example `https://`). MUST NOT be longer than 1000 characters.
 
+## ChannelPhoneSettings(object)
++ callRequest (CallRequest, optional) - Specifying the request, when to call the client
++ notificationEndpoint: `https://www.partnereshop.cz/order/AA234` (string, optional) - URL of the partner used as a notification endpoint for notifying partner about important updates in the application process (approval, rejection, cancellation, etc.). MUST be valid URL according to [RFC 3986](https://tools.ietf.org/html/rfc3986). URL SHOULD contain scheme (for example `https://`). MUST NOT be longer than 1000 characters.
+
+## CallRequest(object)
++ type (enum, required)
+    + `DATES` - The client has specified the date (or dates) and time he wants the operator to call
++ dates (array[string], fixed-type, required) - The date (or dates) and time client wants the operator to call
 
 ## ApplicationBase(object)
 + id: `123e4567-e89b-12d3-a456-426655440000` (string,  required) - Primary identifier of the application
